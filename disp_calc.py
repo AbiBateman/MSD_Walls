@@ -2,7 +2,7 @@ import numpy as np
 
 """Calculation of inheritance displacements"""
 class disp():
-    def __init__(self, name, soil, wall, stage_no, AOD, Hm, Hp):
+    def __init__(self, name, soil, wall, stage_no, AOD, Hm, Hp, iter_param=400):
         """
         Problem Name [String]
         Soil Parameters [dictionary]:
@@ -33,6 +33,7 @@ class disp():
         self.Hm = Hm
         self.Hp = Hp
         self.AOD = AOD
+        self.iter_param = iter_param
 
         self.hp = [] # Distance between prop level and excavation depth (Figure A9)
         self.lamb = [] # Distance from the prop to the stiff stratum (Figure A9)
@@ -179,7 +180,7 @@ class disp():
 
                 ## Iteration Process
                 error = abs((input-output)/output*100)
-                input = input + (output-input)/200
+                input = input + (output-input)/self.iter_param
 
             ## Maximum incremental displacements
             self.delta.append(output)
