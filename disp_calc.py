@@ -108,12 +108,19 @@ class disp():
             
             ## Equation A6
             C1 = np.pi**4*self.EI/self.lamb[m]**3
+            # C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha+1/(4*np.pi)*np.sin(4*np.pi/self.alpha))
             ## Equation A7
             sum = 0
             for stage_sum in range(1, m):
                 sum = sum + self.delta_closedform[stage_sum] * np.sin(2*np.pi*self.lamb[m]/self.lamb[stage_sum]) / \
                         (self.lamb[stage_sum]/self.lamb[m]-(self.lamb[stage_sum]/self.lamb[m])**3)
             C2 = 2*np.pi**3*self.EI/self.lamb[m]**3*sum
+            # for stage_sum in range(1, m):
+            #     sum = sum + self.delta_closedform[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
+            #         1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha) + \
+            #         2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha*(self.lamb[m]/self.lamb[stage_sum]-1))
+            #     )
+            # C2 = np.pi**3*self.EI/self.lamb[m]**3*sum
             
             
             ## Equation A62 - maximum incremental displacements
@@ -150,12 +157,19 @@ class disp():
 
             ## Equation A6
             C1 = np.pi**4*self.EI/self.lamb[m]**3
+            # C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha+1/(4*np.pi)*np.sin(4*np.pi/self.alpha))
             ## Equation A7
             sum = 0
             for stage_sum in range(1, m):
                 sum = sum + self.delta[stage_sum] * np.sin(2*np.pi*self.lamb[m]/self.lamb[stage_sum]) / \
                         (self.lamb[stage_sum]/self.lamb[m]-(self.lamb[stage_sum]/self.lamb[m])**3)
             C2 = 2*np.pi**3*self.EI/self.lamb[m]**3*sum
+            # for stage_sum in range(1, m):
+                # sum = sum + self.delta[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
+                    # 1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha) + \
+                    # 2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha*(self.lamb[m]/self.lamb[stage_sum]-1))
+                # )
+            # C2 = np.pi**3*self.EI/self.lamb[m]**3*sum
 
             while error > 0.01:
                 ## Equation A57
