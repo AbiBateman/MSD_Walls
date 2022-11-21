@@ -43,7 +43,7 @@ class disp():
             self.lamb.append(s_m*self.alpha) if self.Hm[m] > 0 else print("error: Excavation Depth equals 0")
 
     def run(self, elastic_rotation=False, gen_bulging=True):
-
+        """Select which methods to run"""
         if elastic_rotation:
             self.elastic_rotation()
         else:
@@ -59,7 +59,7 @@ class disp():
        
 
     def elastic_rotation(self):
-        """Calculation of the maximum displacement at the top of the wall during the first stage of excavation"""
+        """Calculation of the maximum displacement at the top of the wall during the first stage of excavation assuming elastic conditions"""
         ## Equation B26
         self.rot = self.gamma_sat * (self.Hm[0]*self.L/(6*self.k)) * \
                             (3*self.L**2-3*self.Hm[0]*self.L+self.Hm[0]**2) / \
@@ -69,6 +69,7 @@ class disp():
         # print(f'Elastic Rotation = {round(self.rot*1000,2)}mm')
 
     def rotation(self):
+        """Calculation of the maximum displacement at the top of the wall during the first stage of excavation"""
         ## Equation B21
         self.rot = self.L*self.gamma_50/2 * ((self.gamma_sat*self.Hm[0]/(2*self.chi)) * \
                             ((3-3*self.Hm[0]/self.L+self.Hm[0]**2/self.L**2)/ \
@@ -107,20 +108,15 @@ class disp():
             B_star = self.lamb[m]*(bhom*self.cu0+binh*self.cu_var)
             
             ## Equation A6
-            C1 = np.pi**4*self.EI/self.lamb[m]**3
-            # C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha+1/(4*np.pi)*np.sin(4*np.pi/self.alpha))
+            C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha+1/(4*np.pi)*np.sin(4*np.pi/self.alpha))
             ## Equation A7
             sum = 0
             for stage_sum in range(1, m):
-                sum = sum + self.delta_closedform[stage_sum] * np.sin(2*np.pi*self.lamb[m]/self.lamb[stage_sum]) / \
-                        (self.lamb[stage_sum]/self.lamb[m]-(self.lamb[stage_sum]/self.lamb[m])**3)
-            C2 = 2*np.pi**3*self.EI/self.lamb[m]**3*sum
-            # for stage_sum in range(1, m):
-            #     sum = sum + self.delta_closedform[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
-            #         1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha) + \
-            #         2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha*(self.lamb[m]/self.lamb[stage_sum]-1))
-            #     )
-            # C2 = np.pi**3*self.EI/self.lamb[m]**3*sum
+                sum = sum + self.delta_closedform[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
+                    1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha) + \
+                    2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha*(self.lamb[m]/self.lamb[stage_sum]-1))
+                )
+            C2 = np.pi**3*self.EI/self.lamb[m]**3*sum
             
             
             ## Equation A62 - maximum incremental displacements
@@ -156,20 +152,15 @@ class disp():
             A = a*self.gamma_sat*self.lamb[m]**2
 
             ## Equation A6
-            C1 = np.pi**4*self.EI/self.lamb[m]**3
-            # C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha+1/(4*np.pi)*np.sin(4*np.pi/self.alpha))
+            C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha+1/(4*np.pi)*np.sin(4*np.pi/self.alpha))
             ## Equation A7
             sum = 0
             for stage_sum in range(1, m):
-                sum = sum + self.delta[stage_sum] * np.sin(2*np.pi*self.lamb[m]/self.lamb[stage_sum]) / \
-                        (self.lamb[stage_sum]/self.lamb[m]-(self.lamb[stage_sum]/self.lamb[m])**3)
-            C2 = 2*np.pi**3*self.EI/self.lamb[m]**3*sum
-            # for stage_sum in range(1, m):
-                # sum = sum + self.delta[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
-                    # 1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha) + \
-                    # 2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha*(self.lamb[m]/self.lamb[stage_sum]-1))
-                # )
-            # C2 = np.pi**3*self.EI/self.lamb[m]**3*sum
+                sum = sum + self.delta[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
+                    1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha) + \
+                    2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha*(self.lamb[m]/self.lamb[stage_sum]-1))
+                )
+            C2 = np.pi**3*self.EI/self.lamb[m]**3*sum
 
             while error > 0.01:
                 ## Equation A57
@@ -241,11 +232,3 @@ class disp():
             for stage_sum in range(1,m+1):
                 tot = np.add(tot, self.x_points_inc[stage_sum])
             self.x_points_total[m] = tot
-
-# run = plotting(SSI, SSI_results)
-# print(run)
-
-
-# run = disp(SSI)
-# print(run)
-       
