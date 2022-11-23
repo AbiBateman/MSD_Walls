@@ -130,7 +130,7 @@ class disp():
 
             ##Equation A57 - average shear strain in the mechanism
             sum = 0
-            for stage_sum in range(1, m):
+            for stage_sum in range(1, m+1):
                 sum = sum + 2*self.delta_closedform[stage_sum]/self.lamb[stage_sum]
             gamma_ave = sum
             self.gamma_ave_closedform.append(gamma_ave)
@@ -162,10 +162,10 @@ class disp():
                 )
             C2 = np.pi**3*self.EI/self.lamb[m]**3*sum
 
-            while error > 0.01:
+            while error > 0.001:
                 ## Equation A57
                 sum = 0
-                for stage_sum in range(1,m):
+                for stage_sum in range(0,m):
                     sum = sum + 2*self.delta[stage_sum]/self.lamb[stage_sum]
                 gamma_ave = sum + 2*input/self.lamb[m]
                 ## Equation 56
