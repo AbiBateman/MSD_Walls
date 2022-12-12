@@ -1,42 +1,65 @@
 """
-Calculation of incremental and total displacements
-Equations details in Crispin et al_online supplement_v1
+Online Supplement: MSD applied to the construction of the British Library basement: a multi-stage excavation in London Clay.
+
+Authors. J.J Crispin, A.H. Bateman, E. Voyagaki, A. Campbell, G. Mylonakis, M.D. Bolton and P.J. Vardanega.
+
+This code calculates maximum incremental wall displacements for each stage using the general solution (or closed-form solution),
+and plots the resultant incremental and total wall displacements along the wall length.
+Equation numbers and notation are provided in the accompnaying online supplement.
+
+This code is tested on Python version 3.9.12.
 
 ***DISCLAIMER***
+This code is provided by the authors to show the derivation of the MSD predictions presented in the main text.
+It is not intended to be used or relied upon (in whole or part) for any other purpose, and no warranty is provided or implied.
+While every effort has been made, the authors cannot guarentee that this code is error free.
 
-**Instructions***
+**Notes***
+1. Input parameters for this example are provided in the example function.
+2. Initialise with problem parameters and run Disp.run() to run the analysis.
+3. The general solution is run automatically (with iteration which can be controlled with iter_param if not converging).
+4. The closed form solution can be chosen instead by running Disp.run(gen_bulging=False).
+5. Resulting deltawmax values are stored in Disp.deltawmax.
+6. Disp.soil_mob() returns the soil mobilisation factor and gamma_ave for each stage.
+7. Disp.incremental_disp() returns the incremental displacement profile with depth for each stage.
+8. Disp.total_disp() returns the total displacement profile with depth for each stage.
+9. The incremental and total displacements for each stage are automatically plotted in the saved figure.
 """
 
 # builtin imports
 from dataclasses import dataclass
 # other imports
-import numpy as np  # tested version: X.X.X
-# if script run directly, matplotlib (tested version X.X.X) will also be imported later
+import numpy as np  # tested version: 1.21.5
+# if script run directly, matplotlib (tested version 3.5.2) will also be imported later
 
 def example():
-    # if this file is ran manually, this will run the problem in the paper
+    """
+    Function defines the input parameters and runs the analysis for the example problem.
+    A plot of incremental and total displacements for each stage is produced.
+
+    If this file is ran manually, this will run the problem in the paper.
+    """
 
     figname = "Online_supplement_output.svg"  # where to save the output figure
     
-    # calculate EI
-    # EI Parameters from Ground Engineering (1984)
+    ## RUN ANALYSIS WITH INPUT PARAMETERS
+    # calculate wall stiffness EI (EI Parameters from Ground Engineering (1984))
     conc_E = 3.1*10**7
     steel_E = 2.1*10**8 
     steel_I_total = 5041866675 + 446688928 # I beam + Steel reinforcement
     conc_I_male = np.pi/4*(590**4) # I of male pile
     nu_wall = 0.2  # Poisson's ratio used to get the plane-strain stiffness
     # EI in kNm^2/m (plane strain conditions)
-    EI = (conc_E*conc_I_male + steel_E*steel_I_total) *10**(-12)/(1.95*(1-nu_wall**2))
-    # create analysis with required parameters
+    EI = (conc_E*conc_I_male + steel_E*steel_I_total) *10**(-12)/(1.95*(1-nu_wall**2)) # kNm^2/m (plane-strain conditions)
+    # create analysis with required parameters (parameter definitions provided in object)
     disp = Disp(
-        "Example analysis",
-        cu0 = 40, # Vardanega et al. (2012a) - (by eye fit)
-        cu_var = 11, # Vardanega et al. (2012a) - (by eye fit)
+        "Example analysis", # Title of problem
+        su0 = 40, # Vardanega et al. (2012a) - (by eye fit)
+        su_var = 11, # Vardanega et al. (2012a) - (by eye fit)
         gamma_sat = 20, # Vardanega et al. (2012b)
         b = 0.58, # Vardanega and Bolton (2001a) - mean
         gamma_50 = 0.0070, # Vardanega and Bolton (2001a) - mean
         L = 25+4.6,  # Simpson and Vardanega (2014, pg. 106)
-        La = 25+4.6,  # Simpson and Vardanega (2014, pg. 106)
         EI = EI,  # calculated above
         Hm = [5.2, 10.3, 15.1, 19.9, 24.9],  # Depths as calculated below from mAOD levels
         Hp = [0, 4.6, 9.7, 14.5, 19.3],  # 0.6m above last excavation level (Simpson and Vardanega 2014 pg. 106)
@@ -44,24 +67,25 @@ def example():
     )
     disp.run()  # run analysis
     # extract displacement data for plotting
-    AOD = 19.5  # level of top of wall
-    incr = disp.incremental_disp(AOD=AOD, num_points=100)
-    total = disp.total_disp(AOD=AOD, num_points=100)
+    AOD = 19.5  # reduced level of top of wall
+    incr = disp.incremental_disp(AOD=AOD, num_points=100)  # calculate incremental displacements along length of wall
+    total = disp.total_disp(AOD=AOD, num_points=100)  # calculate total displacements along length of wall
 
+    ## PLOT RESULTS
     import matplotlib.pyplot as plt
-
-    # plot results
     fig, axs = plt.subplots(1, 2, sharex=False, sharey=True, figsize=(7,4), dpi=300, constrained_layout=True)
-    # incremental first
+    # incremental displacements
     ax = axs[0]
     plt.sca(ax)
     for m in range(1, 1 + disp.num_stages):
         plt.plot(incr[:, m] * 1e3, incr[:, 0], label=f"Stage {m}")
     plt.ylabel("Reduced level (mAOD)")
     plt.xlabel(" ")
+    plt.annotate("Incremental Displacements", [0.98, 0.02], xycoords="axes fraction", ha="right", va="bottom")
     ax.invert_yaxis()
     
     ax = axs[1]
+    # total displacements
     plt.sca(ax)
     for m in range(1, 1 + disp.num_stages):
         plt.plot(total[:, m] * 1e3, total[:, 0], label=f"Stage {m}")
@@ -69,6 +93,7 @@ def example():
     plt.ylim(*plt.ylim()[::-1])
     plt.legend(frameon=False)
     plt.figtext(0.5,0.0, "Wall deflection (mm)", ha="center", va="bottom")
+    plt.annotate("Total Displacements", [0.98, 0.02], xycoords="axes fraction", ha="right", va="bottom")
     plt.savefig(figname)
 
     return disp  # return resulting Disp object
@@ -86,18 +111,17 @@ class Disp():
     """
     name: str  # Name of analysis
     # Soil parameters
-    cu0: float          # Undrained shear strength at the undisturbed ground surface (kPa)
-    cu_var: float       # Variation of the undarined shear strength with depth (kPa) - positive down
+    su0: float          # Undrained shear strength at the undisturbed ground surface (kPa)
+    su_var: float       # Variation of the undarined shear strength with depth (kPa)
     gamma_sat: float    # Saturated unit weight of the soil (kN/m^3)
-    b: float            # Soil non-linearity exponent (defined by Vardanega et al 2011)
+    b: float            # Soil non-linearity exponent
     gamma_50: float     # Shear strain when 50% of the soil shear strength is mobilised
     # Wall parameters
     L: float            # Wall Length (m)
-    La: float           # Wall active length (m)
-    EI: float           # Wall Young's Modulus (kPa) multiplied by the second moment of area (m^4)
+    EI: float           # Wall Young's Modulus (kPa) multiplied by the second moment of area (m^4) per meter length (plane strain)
     # Excavation parameters
-    Hm: list[float]  # Excavation depths - measured as 0m at ground surface
-    Hp: list[float]  # Prop depths - measured as 0m at ground surface
+    Hm: list[float]  # Excavation depths - measured as 0m at ground surface (shown in Figure A3)
+    Hp: list[float]  # Prop depths - measured as 0m at ground surface (shown in Figure A3)
     # Analysis parameters
     alpha_lamb: float = 1  # Wall fixity conditions
     Mc: float = 2  # Similarity factor
@@ -105,19 +129,19 @@ class Disp():
     def __post_init__(self, **kwargs):
         """Sets up the mechanism sizes (and related parameters) for each stage"""
         self.num_stages = len(self.Hp)  # Number of excavation stages
-        self.deltawmax = []  # list for storing results
-        self.deltawmax_cf = []  # list for storing closed from results
-        self.hp = [] # Distance between prop level and excavation depth (Figure A9)
-        self.lamb = [] # Distance from the prop to the stiff stratum (Figure A9)
+        self.deltawmax = []  # list for storing maximum incremental displacement results
+        self.deltawmax_cf = []  # list for storing closed form incremental displacement results
+        self.hp = [] # Distance between prop level and excavation depth (Figure A3)
+        self.lamb = [] # Distance from the prop to the stiff stratum (Figure A3)
         for m in range(0, self.num_stages):
-            self.hp.append(self.Hm[m] - self.Hp[m])
-            s_m = self.La - self.Hp[m] 
-            self.lamb.append(s_m*self.alpha_lamb) if self.Hm[m] > 0 else print("error: Excavation Depth equals 0")
+            self.hp.append(self.Hm[m] - self.Hp[m]) # Distance between the excavated depth and the last installed prop (Figure A3)
+            s_m = self.L - self.Hp[m] # Distance between the last installed prop and the base of the wall (Figure A3)
+            self.lamb.append(s_m*self.alpha_lamb) # Wavelength of the deformation mechanism (Figure A3)
 
     def run(self, gen_bulging=True, **kwargs):
         """
         Runs the analysis and stores the results in the object
-        set gen_bulging to False to turn off the iterative solution
+        set gen_bulging to False to turn off the iterative solution (gives closed-form bulging solutions)
         **kwargs passed to bulging calc
         """
         rot = self.rotation()  # stage 1
@@ -125,25 +149,25 @@ class Disp():
         self.deltawmax.append(rot)
         self.deltawmax_cf.append(rot)
         for m in range(1, self.num_stages):  # stages 2 onwards
-            deltawmax_cf = self.closedform_bulging()
+            deltawmax_cf = self.closedform_bulging()  # obtain closed form maximum incremental displacement value
             self.deltawmax_cf.append(deltawmax_cf)  # store result
             if gen_bulging:  # run as normal
-                deltawmax = self.bulging(deltawmax_cf)
+                deltawmax = self.bulging(deltawmax_cf)  # obtain general solution maximum incremental displacement value
             else:  # use closed form value
                 deltawmax = deltawmax_cf
             self.deltawmax.append(deltawmax)  # store result
 
     def rotation(self):
         """Calculation of the maximum displacement at the top of the wall during the first stage of excavation"""
-        ## Equation A1
+        ## Equation A1b
         return (
             self.L * self.gamma_50 / 2 * ((self.gamma_sat * self.Hm[0]) * ((3 - 3 * self.Hm[0] / self.L + self.Hm[0] ** 2 / self.L ** 2) /
-            (self.cu0 * (6 - 6 * self.Hm[0] / self.L + 3 * self.Hm[0] ** 2 / self.L ** 2) +
-            self.cu_var * (2 * self.L - 3 * self.Hm[0] ** 2 / self.L + 2 * self.Hm[0] ** 3 / self.L ** 2)))) ** (1 / self.b)
+            (3 * self.su0 * (2 - 2 * self.Hm[0] / self.L + self.Hm[0] ** 2 / self.L ** 2) +
+            self.su_var * self.L * (2 - 3 * self.Hm[0] ** 2 / self.L ** 2 + 2 * self.Hm[0] ** 3 / self.L ** 3)))) ** (1 / self.b)
         )
 
     def closedform_bulging(self):
-        """Closed-form solution for bulging stages (assumes b = 0.5)"""
+        """Closed-form solution for incremental maximum displacements during bulging stages (assumes b = 0.5)"""
         m = len(self.deltawmax)  # 0 indexed (1 is Stage 2)
             
         ## Potential Energy Loss
@@ -153,33 +177,35 @@ class Disp():
         sum = 0
         for stage_sum in range(1, m):
             sum = sum + self.deltawmax_cf[stage_sum] / self.lamb[stage_sum]
-        B1 = self.Mc / (4 * self.gamma_50) * sum # Eq. A12b
-        B2 = self.Mc / (4 * self.lamb[m] * self.gamma_50) # Eq. A12c
-        B0 = 2*self.Hp[m]/self.lamb[m] + 3*np.pi/8 + 1 # Eq. A7b
-        Bvar = self.Hp[m]*(self.Hp[m]/self.lamb[m]+np.pi/4) + np.sqrt(2)*(self.lamb[m]-self.hp[m])*((5*np.pi**2-12)/(16*np.pi**2)) \
-            + self.lamb[m]*((4*np.pi**2-16)/(16*np.pi**2)) + self.Hm[m]*(1+np.pi/8) # Eq. A7c
-        bm = self.lamb[m]*(B0*self.cu0+Bvar*self.cu_var) # Eq. A13b
+        chi_1 = self.Mc / (4 * self.gamma_50) * sum # Eq. A12b
+        chi_2 = self.Mc / (4 * self.lamb[m] * self.gamma_50) # Eq. A12c
+        b_0 = 2 * self.Hp[m] / self.lamb[m] + 3 * np.pi / 8 + 1 # Eq. A7b
+        b_var = (self.Hp[m] * (self.Hp[m] / self.lamb[m] + np.pi / 4) + np.sqrt(2) * (self.lamb[m] - self.hp[m]) * 
+            ((5 * np.pi ** 2 - 12) / (16 * np.pi ** 2)) + self.lamb[m]*((4 * np.pi ** 2 - 16) / (16 * np.pi ** 2)) 
+            + self.Hm[m] * ( 1 + np.pi / 8)) # Eq. A7c
+        B_max = self.lamb[m] * (b_0 * self.su0 + b_var * self.su_var) # Eq. A13b
         
         ## Elastic Strain Energy
-        C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha_lamb+1/(4*np.pi)*np.sin(4*np.pi/self.alpha_lamb)) # Eq. A8b
+        C1 = np.pi ** 4 * self.EI / self.lamb[m] ** 3 * (
+            (1 / self.alpha_lamb + 1 / (4 * np.pi) * np.sin(4 * np.pi / self.alpha_lamb))) # Eq. A8b
         sum = 0
         for stage_sum in range(1, m):
-            sum = sum + self.deltawmax_cf[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
-                1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha_lamb) + \
-                2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha_lamb*(self.lamb[m]/self.lamb[stage_sum]-1))
-            )
-        C2 = np.pi**3*self.EI/self.lamb[m]**3*sum # Eq. A8c
+            sum = sum + (self.deltawmax_cf[stage_sum] / (self.lamb[stage_sum] ** 3 * (1 + self.lamb[m] / self.lamb[stage_sum])) * (
+                2 / (self.lamb[m] / self.lamb[stage_sum] - 1) * np.sin(2 * np.pi / self.alpha_lamb * (self.lamb[m] / self.lamb[stage_sum] - 1)) + 
+                self.lamb[stage_sum] / self.lamb[m] * np.sin(4 * np.pi / self.alpha_lamb))
+                )
+        C2 = np.pi ** 3 * self.EI * sum # Eq. A8c
         
         ## Maximum incremental displacements
         return (
-            1/(2*C1**2) * 
-            (bm**2*B2 + 2*(A-C2)*C1 - 
-            np.sqrt(bm**4*B2**2+4*bm**2*B2*C1*A+4*bm**2*B1*C1**2-4*bm**2*B2*C1*C2))) # Eq. A13a
+            1 / (2 * C1 ** 2) * 
+            (B_max ** 2 * chi_2 + 2 * C1 * (A - C2) - B_max *
+            np.sqrt(B_max ** 2 * chi_2 ** 2 + 4 * chi_2 * C1 * A + 4 * chi_1 * C1 ** 2 - 4 * chi_2 * C1 * C2))) # Eq. A13a
 
     def bulging(self, guess: float, tol: float = 0.001, iter_param: int = 1000):
         """
-        General solution for bulging stages
-        guess is the initial value to use for the deltawmax iteration
+        General solution for incremental maximum displacements during bulging stages
+        guess is the initial value to use for the deltawmax iteration (suggested to set to closed form solution)
         tol (default 0.001) is the tolerance at which the iteration stops
         iter_param (default 1000) controls how much to change the current deltawmax in each iteration
         formula used: new_guess = old_guess + (output - old_guess) / iter parameter
@@ -191,44 +217,49 @@ class Disp():
         error = 100 # Initialise percentage error between guess and output
 
         ## Potential Energy Loss
-        A = self.gamma_sat*self.lamb[m]*(1/2*self.Hp[m] + 1/4*self.hp[m]) # Eq. A6
+        A = self.gamma_sat * self.lamb[m] * (1 / 2 * self.Hp[m] + 1 / 4 * self.hp[m]) # Eq. A6
 
         ## Elastic Strain Energy
-        C1 = np.pi**4*self.EI/self.lamb[m]**3*(1/self.alpha_lamb+1/(4*np.pi)*np.sin(4*np.pi/self.alpha_lamb)) # Eq. A8b
+        C1 = np.pi ** 4 * self.EI / self.lamb[m] ** 3 * (
+            (1 / self.alpha_lamb + 1 / (4 * np.pi) * np.sin(4 * np.pi / self.alpha_lamb))) # Eq. A8b
         sum = 0
         for stage_sum in range(1, m):
-            sum = sum + self.deltawmax[stage_sum] * self.lamb[m]/self.lamb[stage_sum] * (
-                1/(self.lamb[stage_sum]/self.lamb[m]+1)*np.sin(4*np.pi/self.alpha_lamb) + \
-                2/(1-(self.lamb[stage_sum]/self.lamb[m])**2)*np.sin(2*np.pi/self.alpha_lamb*(self.lamb[m]/self.lamb[stage_sum]-1))
-            )
-        C2 = np.pi ** 3 * self.EI / self.lamb[m] ** 3 * sum  # Eq. A8c
-        while error > tol:  # loop until guess is within tolerance
+            sum = sum + (self.deltawmax[stage_sum] / (self.lamb[stage_sum] ** 3 * (1 + self.lamb[m] / self.lamb[stage_sum])) * (
+                2 / (self.lamb[m] / self.lamb[stage_sum] - 1) * np.sin(2 * np.pi / self.alpha_lamb * (self.lamb[m] / self.lamb[stage_sum] - 1)) + 
+                self.lamb[stage_sum] / self.lamb[m] * np.sin(4 * np.pi / self.alpha_lamb))
+                )
+        C2 = np.pi ** 3 * self.EI * sum # Eq. A8c
+
+        while error > tol:  # loop until guess is within error tolerance
             ## Internal Elastoplastic Energy
             sum = 0
             for stage_sum in range(1, m):
-                sum = sum + self.Mc*self.deltawmax[stage_sum]/self.lamb[stage_sum]
-            gamma_ave = sum + self.Mc*guess/self.lamb[m] # Eq. A11
-            beta_m = 0.5*(gamma_ave/self.gamma_50)**self.b # Eq. A10
-            B0 = 2*self.Hp[m]/self.lamb[m] + 3*np.pi/8 + 1 # Eq. A7b
-            Bvar = self.Hp[m]*(self.Hp[m]/self.lamb[m]+np.pi/4) + np.sqrt(2)*(self.lamb[m]-self.hp[m])*((5*np.pi**2-12)/(16*np.pi**2)) \
-                + self.lamb[m]*((4*np.pi**2-16)/(16*np.pi**2)) + self.Hm[m]*(1+np.pi/8) # Eq. A7c
-            B = beta_m*self.lamb[m]*(B0*self.cu0+Bvar*self.cu_var) # Eq. A7a
-            output = (A-B-C2)/C1 # Maximum incremental displacements (Eq. A9)
+                sum = sum + self.Mc * self.deltawmax[stage_sum] / self.lamb[stage_sum]
+            gamma_ave = sum + self.Mc * guess / self.lamb[m] # Eq. A10b
+            beta_m = 1 / 2 * (gamma_ave / self.gamma_50) ** self.b # Eq. A10a
+            b_0 = 2 * self.Hp[m] / self.lamb[m] + 3 * np.pi / 8 + 1 # Eq. A7b
+            b_var = (self.Hp[m] * (self.Hp[m] / self.lamb[m] + np.pi / 4) + np.sqrt(2) * (self.lamb[m] - self.hp[m]) * 
+                ((5 * np.pi ** 2 - 12) / (16 * np.pi ** 2)) + self.lamb[m]*((4 * np.pi ** 2 - 16) / (16 * np.pi ** 2)) 
+                + self.Hm[m] * ( 1 + np.pi / 8)) # Eq. A7c
+            B = beta_m * self.lamb[m] * (b_0 * self.su0 + b_var * self.su_var) # Eq. A7a
+            output = (A - B - C2) / C1 # Maximum incremental displacements (Eq. A9)
+
             ## Iteration Process
-            error = abs((guess-output)/output*100) # Percentage error between guess and output
-            guess = guess + (output-guess)/iter_param # New initial guess of maximum incremental displacements
+            error = abs((guess - output) / output * 100) # Percentage error between guess and output
+            guess = guess + (output - guess) / iter_param # New initial guess of maximum incremental displacements
+        
         return output  # return result
 
     def soil_mob(self):
         """return the soil mobilisation factor and gamma_ave for each stage"""
-        gamma_aves = []
-        beta_ms = []
-        for m in range(1, len(self.deltawmax) + 1):
+        gamma_aves = [2 * self.deltawmax[0] / self.L]  # gamma_ave for rotation stage (2*theta)
+        beta_ms = [1 / 2 * (gamma_aves[0] / self.gamma_50) ** self.b] # Eq. 10a
+        for m in range(1, len(self.deltawmax)): # Calculation for bulging stages
             sum = 0
             for stage_sum in range(1, m):
-                sum = sum + self.Mc*self.deltawmax[stage_sum]/self.lamb[stage_sum]
-            gamma_ave = sum + self.Mc*self.deltawmax[m]/self.lamb[m] # Eq. A11
-            beta_m = 0.5*(gamma_ave/self.gamma_50)**self.b # Eq. A10
+                sum = sum + self.Mc * self.deltawmax[stage_sum] / self.lamb[stage_sum]
+            gamma_ave = sum + self.Mc * self.deltawmax[m] / self.lamb[m] # Eq. A10b
+            beta_m = 1 / 2 * (gamma_ave / self.gamma_50) ** self.b # Eq. A10a
             gamma_aves.append(gamma_ave)
             beta_ms.append(beta_m)
         return beta_ms, gamma_aves
@@ -240,26 +271,24 @@ class Disp():
         """
         returns an np.array of the incremental displacements at each depth for each stage
         the first column is the depth (split into num_points)
-        if AOD is provided, this is converted to reduced level with AOD being teh value at the top of the wall
+        if AOD is provided, this is converted to reduced level with AOD being the value at the top of the wall
         """
 
         incr = np.zeros((num_points, 1 + self.num_stages))
-        y = np.linspace(0, self.L, num_points)
+        y = np.linspace(0, self.L, num_points)  # Depths along length of wall
         if AOD is None:
-            incr[:, 0] = y
+            incr[:, 0] = y  # Depths along length of wall
         else:
-            incr[:, 0] = AOD - y
+            incr[:, 0] = AOD - y  # Reduced levels
 
         # rotation stage
-        incr[:, 1] = self.deltawmax[0] * (1 - y / self.La)
+        incr[:, 1] = self.deltawmax[0] * (1 - y / self.L) # Eq. A1a
 
         # bulging stages
         for m in range(1, self.num_stages):
             incr[:, m + 1] = (
-                (y >= self.Hp[m]) * 
-                1 / 2 * (1 - np.cos(2 * np.pi * (y - self.Hp[m]) / self.lamb[m])) * 
-                self.deltawmax[m]
-            )
+                (y >= self.Hp[m]) * 1 / 2 * (1 - np.cos(2 * np.pi * (y - self.Hp[m]) / self.lamb[m])) * self.deltawmax[m]
+            ) # Eq. A2
         return incr
 
     def total_disp(self,
@@ -271,8 +300,9 @@ class Disp():
         the first column is the depth (split into num_points)
         if AOD is provided, this is converted to reduced level with AOD being teh value at the top of the wall
         """
+
         total = self.incremental_disp(AOD, num_points)
-        total[:, 1:] = np.cumsum(total[:, 1:], axis=1)
+        total[:, 1:] = np.cumsum(total[:, 1:], axis=1) # Eq. A11
         return total
 
 if __name__ == "__main__":
