@@ -345,7 +345,7 @@ class Disp():
             for zone CDE, set r0=0 as the centre is point D
             for zone EFH, set r0=hp as the centre is point F
             """
-            return r * (np.pi / lamb * np.sin(2*np.pi * (r + r0) / lamb) - 1 / 2 / r * (1-np.cos(2*np.pi * (r + r0) / lamb)))  ## Eq. A8a multiplied by r
+            return (r * np.pi / lamb * np.sin(2*np.pi * (r + r0) / lamb) - 1 / 2 * (1-np.cos(2*np.pi * (r + r0) / lamb)))  ## Eq. A8a multiplied by r
 
         def deriv_gamma(r , lamb , hp):
             """derivative of shear strain (dg/dr) at distance r for specific mechanism (defined by lambda and hp)"""
@@ -382,7 +382,11 @@ class Disp():
             )
         else:
             # sign change, find two roots
-            r2 = root_scalar(gamma, method="bisect", args=(self.lamb[m], self.hp[m]), bracket=(-0.001 * self.lamb[m], rp)).root  # first non-zero root
+            if gamma(0, self.lamb[m], self.hp[m]) >= 0:
+                # for very low values of hp (<0.001*lambda), r2 would be negative (so irrelevant)
+                r2 = 0.  # In this case just set it to zero
+            else:
+                r2 = root_scalar(gamma, method="bisect", args=(self.lamb[m], self.hp[m]), bracket=(0, rp)).root  # first non-zero root
             r3 = root_scalar(gamma, method="bisect", args=(self.lamb[m], self.hp[m]), bracket=(rp ,(0.4 * self.lamb[m]))).root  # second non-zero root
             r2_bar = r2 / self.lamb[m]
             r3_bar = r3 / self.lamb[m]
